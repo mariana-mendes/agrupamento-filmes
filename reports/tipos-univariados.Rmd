@@ -31,7 +31,7 @@ paleta = c("#404E4D",
 ```{r}
 ## ANTES DE USAR
 # Para criar data/movies.csv
-import_data("scarlett_johansson") # ou com o ator/atriz que você escolher
+import_data("natalie_portman") # ou com o ator/atriz que você escolher
 ```
 
 
@@ -42,26 +42,41 @@ filmes = read_imported_data()
 ## Descrição
 
 ```{r}
-filmes %>% 
-    ggplot(aes(x = ano, y = bilheteria)) + 
-    geom_point(size = 4, color = paleta[1]) 
+
+
+
+p <- plot_ly(filmes, x = filmes$bilheteria , y = filmes$ano, text = filmes$filme, type = 'scatter', mode = 'markers', color = filmes$avaliacao, colors = 'Reds',
+        marker = list(size = 20, opacity = 0.5)) %>%
+  layout(title = 'Gender Gap in Earnings per University',
+         xaxis = list(showgrid = FALSE),
+         yaxis = list(showgrid = FALSE))
+
+
+
+
+ggplotly(p)
+
+
+
 ```
 
 
+## Usar barras pra comparar por ano
+ 
 
 ```{r}
-filmes %>% 
-    ggplot(aes(x = bilheteria)) + 
-    geom_histogram(binwidth = 15, fill = paleta[2], color = "black") + 
-    geom_rug(size = .5) 
+
+p <- plot_ly(filmes, x = filmes$filme, y = filmes$avaliacao, type = 'bar', name = 'SF Zoo') %>%
+  add_trace(y = filmes$ano, name = 'LA Zoo') %>%
+  layout(yaxis = list(title = 'Count'), barmode = 'group')
+
+ggplotly(p)
+```
+```{r}
+p <- plot_ly(filmes, x = filmes$ano, y = filmes$avaliacao, type = 'scatter', mode = 'lines')
+ggplotly(p)
 ```
 
-```{r}
-filmes %>% 
-    ggplot(aes(x = avaliacao)) + 
-    geom_histogram(binwidth = 10, boundary = 0, fill = paleta[3], color = "black") + 
-    geom_rug(size = .5) 
-```
 
 ## Estrutura de grupos?
 
@@ -74,23 +89,6 @@ p = filmes %>%
 ggplotly(p)
 ```
 
-## Agrupamento hierárquico
-
-```{r}
-agrupamento_h = filmes %>% 
-    mutate(nome = paste0(filme, 
-                         " (av=", 
-                         avaliacao, 
-                         ")")) %>% 
-    as.data.frame() %>% 
-    column_to_rownames("filme") %>% 
-    select(avaliacao) %>%
-    dist(method = "euclidian") %>% 
-    hclust(method = "complete")
-
-ggdendrogram(agrupamento_h, rotate = T, size = 2, theme_dendro = F) + 
-    labs(y = "Dissimilaridade", x = "", title = "Dendrograma")
-```
 
 ```{r}
 get_grupos <- function(agrupamento, num_grupos){
@@ -115,16 +113,5 @@ atribuicoes %>%
 
 ```
 
-```{r}
-k_escolhido = 3
 
-atribuicoes %>% 
-    filter(k == k_escolhido) %>% 
-    ggplot(aes(x = reorder(label, avaliacao), y = avaliacao, colour = grupo)) + 
-    geom_jitter(width = .02, height = 0, size = 3, alpha = .6) + 
-    facet_wrap(~ paste(k, " grupos")) + 
-    scale_color_brewer(palette = "Dark2") + 
-    labs(x = "", y = "Avaliação RT") + 
-    coord_flip() 
-```
 
