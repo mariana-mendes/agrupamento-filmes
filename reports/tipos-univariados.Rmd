@@ -1,5 +1,5 @@
 ---
-title: "Tipos de filme de FULANO(A)"
+title: "Tipos de filme de Natalie Portman"
 output:
     html_document:
     df_print: paged
@@ -18,12 +18,7 @@ library(ggbeeswarm)
 library(broom)
 
 theme_set(theme_bw())
-
-
-
 source(here::here("code/lib.R"))
-
-
 knitr::opts_chunk$set(tidy = FALSE,
                       fig.width = 6,
                       fig.height = 5,
@@ -37,22 +32,12 @@ paleta = c("#404E4D",
 ```
 
 ```{r}
-## ANTES DE USAR
-# Para criar data/movies.csv
+
 dados <- read_csv("/home/marianamendes/natalie_portman/data/natalie.csv")
-import_data("natalie_portman") # ou com o ator/atriz que você escolher
-```
-
-
-```{r read}
+import_data("natalie_portman")
 filmes = read_imported_data()
-
 filmes_total <- merge(filmes, dados, by.x="filme", by.y="filme")
-
-
 ```
-
-## Descrição
 
 A atriz escolhida foi Natalie Portman, uma atriz israelense, que nasceu no dia 9 de junho em 1981 (37 anos). 
 Natalie começou a carreira muito cedo, aos 11 anos, quando atuou em The Professional no ano de 1994. 
@@ -74,10 +59,6 @@ filmes_total %>% filter(ano < 1997) %>% ggplot(aes(x=filme, y=avaliacao)) +
        subtitle="Avaliações pelo rotten tomatoes", 
        caption="source: mpg") + 
   theme(axis.text.x = element_text(angle=40, vjust=0.8))
-
-
-
-
 ```
 
 
@@ -86,6 +67,10 @@ filmes_total %>% filter(ano < 1997) %>% ggplot(aes(x=filme, y=avaliacao)) +
 Em 1999, quando tinha seus 18 anos, iniciou sua participação na saga Star Wars onde interpretou Padmé Amidala. O episódio I, The Phanton Menace, foi um sucesso de bilheteria, arrecadando mais de 800 milhões.
 Os outros dois episódios também foram bem recebidos pelo público, ambos com mais de 400 milhões nas bilheterias :). 
 A saga foi de extrema importância para a jovem atriz, visto que foram os filmes que mais fizeram sucesso no cinema em toda sua carreira até agora. 
+```{r}
+include_graphics('/home/marianamendes/natalie_portman/data/sw.gif')
+```
+
 
 ```{r}
 
@@ -105,11 +90,12 @@ ggplotly(p)
 A partir desse gráficos conseguimos ver (ao passar o mouse em cima das barras), que os filmes da saga Star Wars são `outliers` em relação às bilheterias, apesar de não terem sido tão bem avaliados no rotten tomatoes. 
 
 
-### Anos movimentados. 
+### Através dos anos... 
 
 
 ```{r}
 anos <- filmes_total %>% group_by(ano) %>% summarise(count=n(), media=mean(avaliacao), media_bi=mean(bilheteria.y))
+
 
 ggplot(anos, aes(x=ano)) + 
   geom_line(aes(y=media)) + 
@@ -119,10 +105,11 @@ ggplot(anos, aes(x=ano)) +
   theme(axis.text.x = element_text(angle = 90, vjust=0.5),  # rotate x axis text
         panel.grid.minor = element_blank())  # turn off minor grid
 
-ggplotly(p)
 ```
 
-## Estrutura de grupos?
+## Tipos de filmes 
+
+Agora iremos observar as obras de forma agrupada, no gráfico abaixo conseguimos observar alguns grupos se formando...
 
 ```{r}
 p = filmes_total %>% 
@@ -132,128 +119,31 @@ p = filmes_total %>%
 
 ggplotly(p)
 ```
-
-
-## K-means
-
-### Com uma dimensão
-
+Usando avaliação para analisar, é possível observar 4 ou 3 grupos definidos... Iremos ver isso melhor mais adiante. 
 ```{r}
 m_transformado = filmes_total %>% 
     mutate(b = log10(bilheteria.y))
 summary(m_transformado %>% select(bilheteria.y, b))
 ```
+Agora utilizando as duas variáveis disponíveis, `avaliação` e `bilheteria`, vamos observar como os filmes se dividem melhor, em quantos grupos. 
 
 ```{r}
 n_clusters = 3
 
-# O agrupamento de fato:
-km = m_transformado %>% 
-    select(b) %>% 
-    kmeans(centers = n_clusters, nstart = 20)
-
-agrupado = km %>% 
-    augment(m_transformado)
-
-agrupado %>% 
-    ggplot(aes(x = avaliacao, y = bilheteria.y, color = .cluster))  + 
-    geom_quasirandom(width = .05) + 
-    scale_y_log10()
-
-```
-
-
-```{r}
-agrupa_pop <- function(df, k){
-    select(df, b) %>% 
-        kmeans(centers = k, 
-               nstart = 20) %>% 
-        augment(df) %>% 
-        mutate(.cluster = as.character(.cluster))
-}
-
-agrupamentos = tibble(k = 1:6) %>% 
-    mutate(agrupamento = map(k, ~ agrupa_pop(m_transformado, .))) %>% 
-    unnest(agrupamento)
- 
-agrupamentos %>%
-    ggplot(aes(
-        x = avaliacao,
-        y =  bilheteria.y,
-        label = "",
-        colour = .cluster
-    )) +
-    geom_quasirandom(width = .3) +
-    facet_wrap( ~ k) +
-    scale_y_log10()
-```
-
-### Com duas
-
-```{r}
-n_clusters = 4
-
-# O agrupamento de fato:
 km = m_transformado %>% 
     select(b, avaliacao) %>% 
     kmeans(centers = n_clusters, nstart = 20)
 
 agrupado = km %>% 
     augment(m_transformado)
-
-agrupado %>% 
-    ggplot(aes(x = avaliacao, y = bilheteria.y, color = .cluster))  + 
-    geom_point(size = 2) + 
-    scale_y_log10()
-
-```
-
-Opa. O agrupamento está considerando apenas população. Isso acontece porque a escala dessa variável tem distâncias muito maiores em termos absolutos que a idhm. Para resolver, precisamos colocá-las em uma mesma unidade: desvios padrão.
-
-```{r}
 m_transformado = filmes_total %>% 
-    mutate(pop_log_scaled = as.vector(scale(log10(bilheteria.y))), 
-           idhm_scaled = as.vector(scale(avaliacao))) 
-    
-m_transformado %>% 
-    select(pop_log_scaled, idhm_scaled) %>% 
-    summary()
-```
+    mutate(bilh_scaled = as.vector(scale(log10(bilheteria.y))), 
+           av_scaled = as.vector(scale(avaliacao))) 
 
 
-```{r}
-km = m_transformado %>%
-    select(pop_log_scaled, idhm_scaled) %>%
-    kmeans(centers = n_clusters, nstart = 20)
-
-agrupado = km %>% 
-    augment(m_transformado)
-
-agrupado %>%
-    ggplot(aes(x = idhm_scaled, y = pop_log_scaled, color = .cluster))  +
-    geom_point(size = 2) 
-
-agrupado %>%
-    ggplot(aes(x = avaliacao, y = bilheteria.y, color = .cluster, label = filme))  +
-    geom_point(size = 2) +
-    scale_y_log10()
-```
-
-```{r}
-p = agrupado %>%
-    ggplot(aes(x = avaliacao, y = bilheteria.y, color = .cluster, label = filme))  +
-    geom_point(size = 2) +
-    scale_y_log10()
-
-ggplotly(p)
-```
-
-
-
-```{r}
-agrupa_pop_idhm <- function(df, k){
+agrupa_bilh_avaliacao<- function(df, k){
     df %>% 
-        select(pop_log_scaled, idhm_scaled) %>%
+        select(bilh_scaled, av_scaled) %>%
         kmeans(centers = k, 
                nstart = 20) %>% 
         augment(df) %>% 
@@ -261,7 +151,7 @@ agrupa_pop_idhm <- function(df, k){
 }
 
 agrupamentos = tibble(k = 1:6) %>% 
-    mutate(agrupamento = map(k, ~ agrupa_pop_idhm(m_transformado, .))) %>% 
+    mutate(agrupamento = map(k, ~ agrupa_bilh_avaliacao(m_transformado, .))) %>% 
     unnest(agrupamento)
  
 agrupamentos %>%
@@ -274,6 +164,47 @@ agrupamentos %>%
     geom_point(size = 2, alpha = .8) +
     facet_wrap( ~ k) +
     scale_y_log10()
+    
 ```
+
+Vendo as 6 representações acima é notável que utilizando 3 clusters, grupos, os filmes ficam mais bem definidos, ou seja "mais pertecentes" a um determinado conjunto de outros filmes. Agora vamos melhorar a representação usando 3 grupos. 
+
+
+```{r}
+km = m_transformado %>%
+    select(bilh_scaled, av_scaled) %>%
+    kmeans(centers = n_clusters, nstart = 20)
+
+agrupado = km %>% 
+    augment(m_transformado)
+
+agrupado %>%
+    ggplot(aes(x = av_scaled, y = bilh_scaled, color = .cluster))  +
+    geom_point(size = 2) 
+```
+
+
+
+```{r}
+p = agrupado %>%
+    ggplot(aes(x = avaliacao, y = bilheteria.y, color = .cluster, label = filme))  +
+    geom_point(size = 2) +
+    scale_y_log10() 
+
+ggplotly(p)
+```
+
+Pronto. Usando esse gráfico podemos observar também qual pontinho representa que filme, basta colocar o mouse em cima... Agora vamos analisar.
+
+
+### Annihilation :D
+
+### Eating Animals :) 
+
+### Mars Attacks! :|
+
+### Free Zone :( 
+
+
 
 
