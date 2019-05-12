@@ -48,12 +48,10 @@ import_data <- function(celebridade = "tom_cruise"){
     
     filmes = from_page %>% 
         filter(RATING != "No Score Yet", 
-               BOXOFFICE != "—", 
                !(CREDIT %in% c("Producer", "Executive Producer"))) %>%
         mutate(RATING = as.numeric(gsub("%", "", RATING)),
                CREDIT = gsub("\n *", " ", CREDIT),
-               BOXOFFICE = as.numeric(gsub("[$|M]", "", BOXOFFICE))) %>% 
-        filter(BOXOFFICE >= 1)
+               BOXOFFICE = as.numeric(gsub("[$|M]", "", BOXOFFICE)))
     
     filmes %>% 
         write_csv(here::here("data/movies.csv"))
@@ -68,3 +66,4 @@ read_imported_data <- function(){
                ano = YEAR, 
                papel = CREDIT)
 }
+

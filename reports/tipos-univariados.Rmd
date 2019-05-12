@@ -12,9 +12,17 @@ library(here)
 library(cluster)
 library(plotly)
 library(ggdendro)
+library(knitr)
+library(scales)
+library(ggbeeswarm)
+library(broom)
+
+theme_set(theme_bw())
+
+
 
 source(here::here("code/lib.R"))
-theme_set(theme_report())
+
 
 knitr::opts_chunk$set(tidy = FALSE,
                       fig.width = 6,
@@ -31,58 +39,94 @@ paleta = c("#404E4D",
 ```{r}
 ## ANTES DE USAR
 # Para criar data/movies.csv
+dados <- read_csv("/home/marianamendes/natalie_portman/data/natalie.csv")
 import_data("natalie_portman") # ou com o ator/atriz que você escolher
 ```
 
 
 ```{r read}
 filmes = read_imported_data()
+
+filmes_total <- merge(filmes, dados, by.x="filme", by.y="filme")
+
+
 ```
 
 ## Descrição
 
+A atriz escolhida foi Natalie Portman, uma atriz israelense, que nasceu no dia 9 de junho em 1981 (37 anos). 
+Natalie começou a carreira muito cedo, aos 11 anos, quando atuou em The Professional no ano de 1994. 
+Até seus 15 anos já havia participado de 5 filmes.
 ```{r}
+include_graphics('/home/marianamendes/natalie_portman/data/natalie_1996.jpg')
+```
 
+Até 1996 Natalie fez 5 filmes, todos eles com uma avaliação superior a 50 no RottenTomatoes, contudo com uma bilheteria não tão alta. 
 
+```{r}
+filmes_total %>% filter(ano < 1997) %>% ggplot(aes(x=filme, y=avaliacao)) + 
+  geom_point(size=5) + 
+  geom_segment(aes(x=filme, 
+                   xend=filme, 
+                   y=0, 
+                   yend=avaliacao)) + 
+  labs(title="Natalie Portman até 1996", 
+       subtitle="Avaliações pelo rotten tomatoes", 
+       caption="source: mpg") + 
+  theme(axis.text.x = element_text(angle=40, vjust=0.8))
 
-p <- plot_ly(filmes, x = filmes$bilheteria , y = filmes$ano, text = filmes$filme, type = 'scatter', mode = 'markers', color = filmes$avaliacao, colors = 'Reds',
-        marker = list(size = 20, opacity = 0.5)) %>%
-  layout(title = 'Gender Gap in Earnings per University',
-         xaxis = list(showgrid = FALSE),
-         yaxis = list(showgrid = FALSE))
-
-
-
-
-ggplotly(p)
 
 
 
 ```
 
 
-## Usar barras pra comparar por ano
- 
+### Star Wars e Natalie Portman - 1999!
+
+Em 1999, quando tinha seus 18 anos, iniciou sua participação na saga Star Wars onde interpretou Padmé Amidala. O episódio I, The Phanton Menace, foi um sucesso de bilheteria, arrecadando mais de 800 milhões.
+Os outros dois episódios também foram bem recebidos pelo público, ambos com mais de 400 milhões nas bilheterias :). 
+A saga foi de extrema importância para a jovem atriz, visto que foram os filmes que mais fizeram sucesso no cinema em toda sua carreira até agora. 
 
 ```{r}
 
-p <- plot_ly(filmes, x = filmes$filme, y = filmes$avaliacao, type = 'bar', name = 'SF Zoo') %>%
-  add_trace(y = filmes$ano, name = 'LA Zoo') %>%
-  layout(yaxis = list(title = 'Count'), barmode = 'group')
+p <- filmes_total %>% count(avaliacao, bilheteria.y, ano, filme) %>% plot_ly(
+  x = ~ano,
+  y = ~bilheteria.y,
+  color = ~avaliacao,
+  text = ~filme,
+  type = "bar"
+) 
 
 ggplotly(p)
+
 ```
+
+
+A partir desse gráficos conseguimos ver (ao passar o mouse em cima das barras), que os filmes da saga Star Wars são `outliers` em relação às bilheterias, apesar de não terem sido tão bem avaliados no rotten tomatoes. 
+
+
+### Anos movimentados. 
+
+
 ```{r}
-p <- plot_ly(filmes, x = filmes$ano, y = filmes$avaliacao, type = 'scatter', mode = 'lines')
+anos <- filmes_total %>% group_by(ano) %>% summarise(count=n(), media=mean(avaliacao), media_bi=mean(bilheteria.y))
+
+ggplot(anos, aes(x=ano)) + 
+  geom_line(aes(y=media)) + 
+  labs(title="Avaliações no através dos anos", 
+       subtitle="Avaliações de filmes no rotten tomatoes", 
+       y="Avaliação") +  # title and caption
+  theme(axis.text.x = element_text(angle = 90, vjust=0.5),  # rotate x axis text
+        panel.grid.minor = element_blank())  # turn off minor grid
+
 ggplotly(p)
 ```
-
 
 ## Estrutura de grupos?
 
 ```{r}
-p = filmes %>% 
-    ggplot(aes(x = "", y = bilheteria, label = filme)) + 
+p = filmes_total %>% 
+    ggplot(aes(x = "filmes", y = bilheteria.y, label = filme)) + 
     geom_jitter(width = .05, alpha = .3, size = 3) + 
     labs(x = "")
 
@@ -90,28 +134,146 @@ ggplotly(p)
 ```
 
 
+## K-means
+
+### Com uma dimensão
+
 ```{r}
-get_grupos <- function(agrupamento, num_grupos){
-    agrupamento %>% 
-        cutree(num_grupos) %>% 
-        as.data.frame() %>% 
-        mutate(label = rownames(.)) %>% 
-        gather(key =  "k", value = "grupo", -label) %>% 
-        mutate(grupo = as.character(grupo))
-}
+m_transformado = filmes_total %>% 
+    mutate(b = log10(bilheteria.y))
+summary(m_transformado %>% select(bilheteria.y, b))
+```
 
-atribuicoes = get_grupos(agrupamento_h, num_grupos = 1:6)
+```{r}
+n_clusters = 3
 
-atribuicoes = atribuicoes %>% 
-    left_join(filmes, by = c("label" = "filme"))
+# O agrupamento de fato:
+km = m_transformado %>% 
+    select(b) %>% 
+    kmeans(centers = n_clusters, nstart = 20)
 
-atribuicoes %>% 
-    ggplot(aes(x = "Filmes", y = avaliacao, colour = grupo)) + 
-    geom_jitter(width = .02, height = 0, size = 1.6, alpha = .6) + 
-    facet_wrap(~ paste(k, " grupos")) + 
-    scale_color_brewer(palette = "Dark2")
+agrupado = km %>% 
+    augment(m_transformado)
+
+agrupado %>% 
+    ggplot(aes(x = avaliacao, y = bilheteria.y, color = .cluster))  + 
+    geom_quasirandom(width = .05) + 
+    scale_y_log10()
 
 ```
 
+
+```{r}
+agrupa_pop <- function(df, k){
+    select(df, b) %>% 
+        kmeans(centers = k, 
+               nstart = 20) %>% 
+        augment(df) %>% 
+        mutate(.cluster = as.character(.cluster))
+}
+
+agrupamentos = tibble(k = 1:6) %>% 
+    mutate(agrupamento = map(k, ~ agrupa_pop(m_transformado, .))) %>% 
+    unnest(agrupamento)
+ 
+agrupamentos %>%
+    ggplot(aes(
+        x = avaliacao,
+        y =  bilheteria.y,
+        label = "",
+        colour = .cluster
+    )) +
+    geom_quasirandom(width = .3) +
+    facet_wrap( ~ k) +
+    scale_y_log10()
+```
+
+### Com duas
+
+```{r}
+n_clusters = 4
+
+# O agrupamento de fato:
+km = m_transformado %>% 
+    select(b, avaliacao) %>% 
+    kmeans(centers = n_clusters, nstart = 20)
+
+agrupado = km %>% 
+    augment(m_transformado)
+
+agrupado %>% 
+    ggplot(aes(x = avaliacao, y = bilheteria.y, color = .cluster))  + 
+    geom_point(size = 2) + 
+    scale_y_log10()
+
+```
+
+Opa. O agrupamento está considerando apenas população. Isso acontece porque a escala dessa variável tem distâncias muito maiores em termos absolutos que a idhm. Para resolver, precisamos colocá-las em uma mesma unidade: desvios padrão.
+
+```{r}
+m_transformado = filmes_total %>% 
+    mutate(pop_log_scaled = as.vector(scale(log10(bilheteria.y))), 
+           idhm_scaled = as.vector(scale(avaliacao))) 
+    
+m_transformado %>% 
+    select(pop_log_scaled, idhm_scaled) %>% 
+    summary()
+```
+
+
+```{r}
+km = m_transformado %>%
+    select(pop_log_scaled, idhm_scaled) %>%
+    kmeans(centers = n_clusters, nstart = 20)
+
+agrupado = km %>% 
+    augment(m_transformado)
+
+agrupado %>%
+    ggplot(aes(x = idhm_scaled, y = pop_log_scaled, color = .cluster))  +
+    geom_point(size = 2) 
+
+agrupado %>%
+    ggplot(aes(x = avaliacao, y = bilheteria.y, color = .cluster, label = filme))  +
+    geom_point(size = 2) +
+    scale_y_log10()
+```
+
+```{r}
+p = agrupado %>%
+    ggplot(aes(x = avaliacao, y = bilheteria.y, color = .cluster, label = filme))  +
+    geom_point(size = 2) +
+    scale_y_log10()
+
+ggplotly(p)
+```
+
+
+
+```{r}
+agrupa_pop_idhm <- function(df, k){
+    df %>% 
+        select(pop_log_scaled, idhm_scaled) %>%
+        kmeans(centers = k, 
+               nstart = 20) %>% 
+        augment(df) %>% 
+        mutate(.cluster = as.character(.cluster))
+}
+
+agrupamentos = tibble(k = 1:6) %>% 
+    mutate(agrupamento = map(k, ~ agrupa_pop_idhm(m_transformado, .))) %>% 
+    unnest(agrupamento)
+ 
+agrupamentos %>%
+    ggplot(aes(
+        x = avaliacao,
+        y = bilheteria.y,
+        label = filme,
+        colour = .cluster
+    )) +
+    geom_point(size = 2, alpha = .8) +
+    facet_wrap( ~ k) +
+    scale_y_log10()
+```
 
 
