@@ -6,7 +6,7 @@ output:
 theme: sandstone
 ---
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r  message=FALSE, warning=FALSE}
 library(tidyverse)
 library(here)
 library(cluster)
@@ -46,7 +46,8 @@ Até seus 15 anos já havia participado de 5 filmes.
 include_graphics('/home/marianamendes/natalie_portman/data/natalie_1996.jpg')
 ```
 
-Até 1996 Natalie fez 5 filmes, todos eles com uma avaliação superior a 50 no RottenTomatoes, contudo com uma bilheteria não tão alta. 
+Até 1996 todos os filmes em que ela atuou possuem uma avaliação superior a 50 no RottenTomatoes, contudo com uma bilheteria não tão alta. Depois de `Beautiful Girls` passou cerca de 3 anos fora das telas para voltar com tudo participando de uma das sagas mais queridas do mundo.
+
 
 ```{r}
 filmes_total %>% filter(ano < 1997) %>% ggplot(aes(x=filme, y=avaliacao)) + 
@@ -58,7 +59,12 @@ filmes_total %>% filter(ano < 1997) %>% ggplot(aes(x=filme, y=avaliacao)) +
   labs(title="Natalie Portman até 1996", 
        subtitle="Avaliações pelo rotten tomatoes", 
        caption="source: mpg") + 
-  theme(axis.text.x = element_text(angle=40, vjust=0.8))
+  theme(axis.text.x = element_text(angle=50,hjust = 0.8, vjust=0.8))
+```
+
+Aqui estão representados os primeiros anos de Natalie no cinema, sendo `The Professional` o primeiríssimo filme, sua avaliação não é tão alta em relação aos outros e a bilheteira não foi lá muito alta também, mas ela conseguiu marcar com a interpretação da pequena `Mathilda`. 
+```{r out.width = "100%", fig.align = "center"}
+include_graphics('/home/marianamendes/natalie_portman/data/mathilda.gif')
 ```
 
 
@@ -67,9 +73,6 @@ filmes_total %>% filter(ano < 1997) %>% ggplot(aes(x=filme, y=avaliacao)) +
 Em 1999, quando tinha seus 18 anos, iniciou sua participação na saga Star Wars onde interpretou Padmé Amidala. O episódio I, The Phanton Menace, foi um sucesso de bilheteria, arrecadando mais de 800 milhões.
 Os outros dois episódios também foram bem recebidos pelo público, ambos com mais de 400 milhões nas bilheterias :). 
 A saga foi de extrema importância para a jovem atriz, visto que foram os filmes que mais fizeram sucesso no cinema em toda sua carreira até agora. 
-```{r}
-include_graphics('/home/marianamendes/natalie_portman/data/sw.gif')
-```
 
 
 ```{r}
@@ -87,8 +90,14 @@ ggplotly(p)
 ```
 
 
-A partir desse gráficos conseguimos ver (ao passar o mouse em cima das barras), que os filmes da saga Star Wars são `outliers` em relação às bilheterias, apesar de não terem sido tão bem avaliados no rotten tomatoes. 
+A partir desse gráficos conseguimos ver (ao passar o mouse em cima das barras), que os filmes da saga Star Wars são `outliers` em relação às bilheterias, apesar de não terem sido tão bem avaliados no rotten tomatoes.
+É possível ver também que no intervalo de 2002 a 2011, todos os anos ela participou em pelo menos um, dentre eles, os mais bem avaliados (em amarelo) Garden State e o famoso Black Swan.                               
+Em Black Swan, Natalie interpretou a bailarina Nina Sayers, precisou emagrecer 10 kilos para as gravações, além de ter sofrido alguns acidentes durante as cenas e treinamentos, contudo parece que o esforço rendeu algo, a atriz ganhou, em 2011, o oscar de melhor atriz principal pelo papel.
 
+
+```{r out.width = "100%", fig.align = "center"}
+include_graphics('/home/marianamendes/natalie_portman/data/bswan.gif')
+```
 
 ### Através dos anos... 
 
@@ -107,9 +116,12 @@ ggplot(anos, aes(x=ano)) +
 
 ```
 
+Aqui temos uma representação rápida das avaliações do Rotten Tomatoes através dos anos. 
+
+
 ## Tipos de filmes 
 
-Agora iremos observar as obras de forma agrupada, no gráfico abaixo conseguimos observar alguns grupos se formando...
+Agora vamos descobrir os tipos de filme de Natalie Portman. Tentaremos agrupá-los com seus semelhantes de acordo com algumas características. No gráfico abaixo, temos esse agrupamento usando apenas a variável `bilheteria`. 
 
 ```{r}
 p = filmes_total %>% 
@@ -119,7 +131,7 @@ p = filmes_total %>%
 
 ggplotly(p)
 ```
-Usando avaliação para analisar, é possível observar 4 ou 3 grupos definidos... Iremos ver isso melhor mais adiante. 
+Usando bilheteria para analisar, é possível observar 4 ou 3 grupos definidos... Iremos ver isso melhor mais adiante. 
 ```{r}
 m_transformado = filmes_total %>% 
     mutate(b = log10(bilheteria.y))
@@ -197,13 +209,14 @@ ggplotly(p)
 Pronto. Usando esse gráfico podemos observar também qual pontinho representa que filme, basta colocar o mouse em cima... Agora vamos analisar.
 
 
-### Annihilation :D
+### Heat :D
+Uma ótima bilheteria... e 86 de avaliação no 
 
-### Eating Animals :) 
+### A Tale of Love and Darkness:) 
 
-### Mars Attacks! :|
+### Your Higness :|
 
-### Free Zone :( 
+
 
 
 
